@@ -14,5 +14,9 @@ public class PlayerBullet : MonoBehaviour
             robot.GetComponent<Robot>().currentHealth -= damage;
             Destroy(gameObject);
         }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 }

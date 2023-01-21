@@ -20,6 +20,7 @@ public class Robot : MonoBehaviour
     [Header("References")]
     Rigidbody2D robotRB;
     GameObject player;
+    GameObject statTracker;
     
 
     void Awake()
@@ -28,6 +29,7 @@ public class Robot : MonoBehaviour
         robotRB = GetComponent<Rigidbody2D>();
         currentHealth = maxHealth;
         robotRB = GetComponent<Rigidbody2D>();
+        statTracker = GameObject.FindWithTag("StatTracker");
     }
 
     void Update()
@@ -67,6 +69,7 @@ public class Robot : MonoBehaviour
 
     void Die()
     {
+        statTracker.GetComponent<StatTracker>().playerKills += 1;
         Destroy(gameObject);
     }
 
