@@ -17,12 +17,24 @@ public class Robot : MonoBehaviour
     [SerializeField] float attackCooldown = 1f;
     float lastAttackTime;
 
+    [Header("Points")]
+    [SerializeField] int pointsPerDeath = 100;
+
+    [Header("Power Ups")]
+    [SerializeField] GameObject maxAmmo;
+    [SerializeField] GameObject instantKill;
+    [SerializeField] GameObject infiniteMana;
+    [SerializeField] int dropSpawnChancePercentage = 20;
+
     [Header("References")]
     Rigidbody2D robotRB;
     GameObject player;
     GameObject statTracker;
-    
+    RoundManager roundManager;
 
+    bool healthLowered;
+    bool healthBoosted;
+    
     void Awake()
     {
         player = GameObject.FindWithTag("Player");
@@ -30,6 +42,7 @@ public class Robot : MonoBehaviour
         currentHealth = maxHealth;
         robotRB = GetComponent<Rigidbody2D>();
         statTracker = GameObject.FindWithTag("StatTracker");
+        roundManager = GameObject.FindWithTag("RoundManager").GetComponent<RoundManager>();
     }
 
     void Update()
@@ -40,6 +53,20 @@ public class Robot : MonoBehaviour
         if(currentHealth <= 0)
         {
             Die();
+        }
+
+        if (roundManager.instantKillActive && !healthLowered)
+        {
+            healthBoosted = false;
+            healthLowered = true;
+            currentHealth = 1;
+        }
+
+        if(!roundManager.instantKillActive && !healthBoosted)
+        {
+            healthBoosted = true;
+            healthLowered = false;
+            currentHealth = 100;
         }
     }
 
@@ -70,6 +97,21 @@ public class Robot : MonoBehaviour
     void Die()
     {
         statTracker.GetComponent<StatTracker>().playerKills += 1;
+        statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
+
+        var randomNumber = Random.Range(1, 100);
+        if(randomNumber < dropSpawnChancePercentage)
+        {
+            var randomNumber2 = Random.Range(1, 3);
+            if (randomNumber2 == 1)
+            {
+                Instantiate(maxAmmo, this.transform.position, Quaternion.identity);
+            }
+            else if (randomNumber2 == 2)
+            {
+                Instantiate(instantKill, this.transform.position, Quaternion.identity);
+            }
+        }
         Destroy(gameObject);
     }
 

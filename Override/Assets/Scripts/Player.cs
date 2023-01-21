@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Player : MonoBehaviour
 {
@@ -33,21 +34,32 @@ public class Player : MonoBehaviour
     [SerializeField] int ammoStockpile = 24;
     [SerializeField] int ammoInMag;
     [SerializeField] int magSize = 12;
+    [SerializeField] bool isFullAuto;
     float nextFire;
 
     [Header("Gun Evolution")]
     [SerializeField] int gunLevel;
     [SerializeField] int playerKills;
+    public bool hasPierceShot;
 
     [Header("Reloading")]
     bool isReloading;
-    [SerializeField] float reloadTime;
+    [SerializeField] float reloadTime = 3f;
 
     [Header("References")]
     Rigidbody2D playerRB;
     public GameObject bulletPrefab;
     public Transform firePoint;
     GameObject statTracker;
+    TextMeshProUGUI ammoCounterText;
+    [SerializeField] SpriteRenderer bigBulletSprite;
+
+    [Header("Audio")]
+    [SerializeField] AudioSource singleFireSound;
+
+    [Header("Animations")]
+    Animator playerAnim;
+    public RuntimeAnimatorController markTwoController;
 
     void Start()
     {
@@ -55,10 +67,13 @@ public class Player : MonoBehaviour
         currentHealth = maxHealth;
         currentGunMana = maxGunMana;
         statTracker = GameObject.FindWithTag("StatTracker");
+        playerAnim = GetComponent<Animator>();
         gunLevel = 1;
 
         ammoInMag = magSize;
         ammoStockpile -= magSize;
+
+        ammoCounterText = GameObject.FindWithTag("AmmoText").GetComponent<TextMeshProUGUI>();
     }
 
     void FixedUpdate()
@@ -80,6 +95,25 @@ public class Player : MonoBehaviour
         GetCurrentKills();
         GunLeveling();
         Reloading();
+        AmmoCounter();
+        CheckMovement();
+    }
+
+    void ChangeMarkTwoAnims()
+    {
+        playerAnim.runtimeAnimatorController = markTwoController;
+    }
+
+    void CheckMovement()
+    {
+        if (playerRB.velocity != Vector2.zero)
+        {
+            playerAnim.SetBool("isRunning", true);
+        }
+        else
+        {
+            playerAnim.SetBool("isRunning", false);
+        }
     }
 
     void LookAtMouse()
@@ -139,16 +173,50 @@ public class Player : MonoBehaviour
 
     void Shooting()
     {
-        if (Input.GetButtonDown("Fire1") && Time.time > nextFire && ammoInMag >= 1)
+        if (isFullAuto)
         {
-            ammoInMag -= 1;
-            nextFire = Time.time + fireRate;
-            GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-            newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
-            Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
-            rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+            if (Input.GetButton("Fire1") && Time.time > nextFire && ammoInMag >= 1)
+            {
+                nextFire = Time.time + fireRate;
+                Shoot();
+            }
         }
+        else
+        {
+            if (Input.GetButtonDown("Fire1") && Time.time > nextFire && ammoInMag >= 1)
+            {
+                nextFire = Time.time + fireRate;
+                Shoot();
+            }
+        }
+
+        //if(Input.GetKeyDown(KeyCode.Q) && hasPierceShot)
+        //{
+        //    ShootPierceShot();
+        //}
     }
+
+    void Shoot()
+    {
+        singleFireSound.Play();
+        ammoInMag -= 1;
+        GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
+        newBullet.GetComponent<PlayerBullet>().isPierceShot = false;
+        Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+        rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+    }
+
+    //void ShootPierceShot()
+    //{
+    //    singleFireSound.Play();
+    //    GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+    //    newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
+    //    newBullet.GetComponent<PlayerBullet>().isPierceShot = true;
+    //    newBullet.GetComponent<SpriteRenderer>().sprite = bigBulletSprite;
+    //    Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+    //    rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+    //}
 
     public void TakeDamage(float DamagePerHit)
     {
@@ -177,16 +245,16 @@ public class Player : MonoBehaviour
             case 0:
                 gunLevel = 1;
                 break;
-            case 1:
+            case 2:
                 gunLevel = 2;
                 break;
-            case 2:
+            case 4:
                 gunLevel = 3;
                 break;
-            case 3:
+            case 6:
                 gunLevel = 4;
                 break;
-            case 4:
+            case 8:
                 gunLevel = 5;
                 break;
         }
@@ -194,37 +262,50 @@ public class Player : MonoBehaviour
         switch (gunLevel)
         {
             case 1:
-                print("The gun is level one!");
+                //Pistol
+                hasPierceShot = false;
                 fireRate = 1f;
-                bulletDamage = 20f;
+                isFullAuto = false;
+                bulletDamage = 30f;
+                reloadTime = 2f;
                 break;
             case 2:
-                print("The gun is level two!");
+                //Rifle
+                ChangeMarkTwoAnims();
                 fireRate = .7f;
-                bulletDamage = 30f;
+                isFullAuto = false;
+                bulletDamage = 40f;
                 dashUnlocked = true;
+                reloadTime = 2f;
                 break;
             case 3:
-                print("The gun is level three!");
-                fireRate = .5f;
-                bulletDamage = 40f;
+                //Shotgun
+                hasPierceShot = true;
+                fireRate = 2f;
+                isFullAuto = false;
+                bulletDamage = 100f;
+                reloadTime = 2f;
                 break;
             case 4:
-                print("The gun is level four!");
-                fireRate = .3f;
-                bulletDamage = 50f;
+                //Smg
+                fireRate = .2f;
+                isFullAuto = true;
+                bulletDamage = 10f;
+                reloadTime = 2f;
                 break;
             case 5:
-                print("The gun is level five!");
-                fireRate = .1f;
-                bulletDamage = 60f;
+                //Assualt Rifle
+                fireRate = .4f;
+                isFullAuto = true;
+                bulletDamage = 20f;
+                reloadTime = 2f;
                 break;
         }
     }
 
     void Reloading()
     {
-        if((Input.GetKeyDown("R") || ammoInMag == 0) && !isReloading && ammoStockpile > 0)
+        if((Input.GetKeyDown(KeyCode.R) || ammoInMag == 0) && !isReloading && ammoStockpile > 0)
         {
             StartCoroutine(ReloadRoutine());
         }
@@ -234,7 +315,30 @@ public class Player : MonoBehaviour
     {
         isReloading = true;
         yield return new WaitForSeconds(reloadTime);
-        ammoStockpile -= magSize;
-        ammoInMag = magSize;
+        int ammoToTake;
+        if(ammoStockpile >= magSize)
+        {
+            ammoToTake = magSize - ammoInMag;
+            ammoStockpile -= ammoToTake;
+            ammoInMag = magSize;
+        }
+        else
+        {
+            ammoToTake = ammoStockpile;
+            ammoInMag = ammoToTake;
+            ammoStockpile -= ammoToTake;
+        }
+
+        isReloading = false;
+    }
+
+    void AmmoCounter()
+    {
+        ammoCounterText.text = ammoInMag + "/" + ammoStockpile;
+    }
+
+    public void MaxAmmo()
+    {
+        ammoStockpile += 50;
     }
 }

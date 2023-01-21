@@ -269,3 +269,7 @@ MonoBehaviour:
   damagePerHit: 20
   attackRange: 1
   attackCooldown: 1
+  pointsPerDeath: 100
+  maxAmmo: {fileID: 7522445773849784735, guid: d03945e9cdd26974ebb639ba9c0bb8a1, type: 3}
+  instantKill: {fileID: 391585381707967775, guid: 476daea632c2da748995854fe281d19d, type: 3}
+  dropSpawnChancePercentage: 20
