@@ -13,6 +13,8 @@ TagManager:
   - MaxAmmo
   - InstantKill
   - RoundCounter
+  - RobotSpawner
+  - HealthText
   layers:
   - Default
   - TransparentFX
