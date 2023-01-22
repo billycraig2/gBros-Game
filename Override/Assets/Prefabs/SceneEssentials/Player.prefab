@@ -661,6 +661,9 @@ MonoBehaviour:
   painTwoSound: {fileID: 553779394}
   painOneSound: {fileID: 1938476159}
   markTwoController: {fileID: 9100000, guid: aa11d8c12a70b2e42a190b3abf4e2ddc, type: 2}
+  markThreeController: {fileID: 9100000, guid: 324bf27c01419aa44bf5e903bca5e6bd, type: 2}
+  markFourController: {fileID: 9100000, guid: 0acda5b01d7fc854cade8f5b39f7b0cc, type: 2}
+  markFiveController: {fileID: 0}
   controlsEnabled: 0
 --- !u!50 &2325355612437413801
 Rigidbody2D:
@@ -745,7 +748,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 4, y: 4}
+  m_Size: {x: 2.1333334, y: 2.1333334}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0

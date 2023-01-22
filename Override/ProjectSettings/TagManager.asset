@@ -15,6 +15,7 @@ TagManager:
   - RoundCounter
   - RobotSpawner
   - HealthText
+  - RobotShooter
   layers:
   - Default
   - TransparentFX

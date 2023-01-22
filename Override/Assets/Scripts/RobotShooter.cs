@@ -14,7 +14,6 @@ public class RobotShooter : MonoBehaviour
 
     [Header("Damage")]
     [SerializeField] float damagePerHit = 20f;
-    [SerializeField] float attackRange = 7f;
     [SerializeField] float bulletSpeed = 10f;
     [SerializeField] float attackCooldown = 1f;
     float lastAttackTime;
@@ -79,6 +78,12 @@ public class RobotShooter : MonoBehaviour
         }
 
         distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
+
+        if (Time.time >= lastAttackTime + attackCooldown)
+        {
+            Shoot();
+            lastAttackTime = Time.time;
+        }
     }
 
     void LookAtPlayer()
@@ -93,16 +98,6 @@ public class RobotShooter : MonoBehaviour
     void ChasePlayer()
     {
         transform.position = Vector2.MoveTowards(transform.position, player.transform.position, movementSpeed * Time.deltaTime);
-
-        if (distanceToPlayer <= attackRange)
-        {
-            print("In attack range");
-            if (Time.time >= lastAttackTime + attackCooldown)
-            {
-                Shoot();
-                lastAttackTime = Time.time;
-            }
-        }
     }
 
     void Die()
@@ -128,10 +123,11 @@ public class RobotShooter : MonoBehaviour
 
     void Shoot()
     {
-        print("Shoot at player");
         GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         newBullet.GetComponent<PlayerBullet>().damage = damagePerHit;
+        newBullet.GetComponent<PlayerBullet>().isPlayerBullet = false;
         Vector2 direction = (player.transform.position - firePoint.position).normalized;
-        bulletPrefab.GetComponent<Rigidbody2D>().velocity = direction * bulletSpeed;        
+        Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+        rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
     }
 }

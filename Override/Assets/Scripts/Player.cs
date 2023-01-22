@@ -69,6 +69,9 @@ public class Player : MonoBehaviour
     [Header("Animations")]
     Animator playerAnim;
     public RuntimeAnimatorController markTwoController;
+    public RuntimeAnimatorController markThreeController;
+    public RuntimeAnimatorController markFourController;
+    public RuntimeAnimatorController markFiveController;
 
     [Header("Misc")]
     public bool controlsEnabled;
@@ -129,6 +132,21 @@ public class Player : MonoBehaviour
     void ChangeMarkTwoAnims()
     {
         playerAnim.runtimeAnimatorController = markTwoController;
+    }
+
+    void ChangeMarkThreeAnims()
+    {
+        playerAnim.runtimeAnimatorController = markThreeController;
+    }
+
+    void ChangeMarkFourAnims()
+    {
+        playerAnim.runtimeAnimatorController = markFourController;
+    }
+
+    void ChangeMarkFiveAnims()
+    {
+        playerAnim.runtimeAnimatorController = markFiveController;
     }
 
     void CheckMovement()
@@ -231,6 +249,7 @@ public class Player : MonoBehaviour
         GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
         newBullet.GetComponent<PlayerBullet>().isPierceShot = false;
+        newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
         Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
         rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
     }
@@ -243,6 +262,7 @@ public class Player : MonoBehaviour
         newBullet.GetComponent<PlayerBullet>().damage = 1000;
         newBullet.GetComponent<PlayerBullet>().isPierceShot = true;
         newBullet.GetComponent<SpriteRenderer>().sprite = bigBulletSprite;
+        newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
         Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
         rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
     }
@@ -335,6 +355,7 @@ public class Player : MonoBehaviour
                 break;
             case 3:
                 //Shotgun
+                ChangeMarkThreeAnims();
                 hasPierceShot = true;
                 fireRate = 2f;
                 isFullAuto = false;
@@ -343,6 +364,7 @@ public class Player : MonoBehaviour
                 break;
             case 4:
                 //Smg
+                ChangeMarkFourAnims();
                 fireRate = .2f;
                 isFullAuto = true;
                 bulletDamage = 10f;
