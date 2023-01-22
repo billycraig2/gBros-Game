@@ -6,6 +6,16 @@ TagManager:
   tags:
   - Robot
   - StatTracker
+  - AmmoText
+  - PointsCounter
+  - PromptText
+  - RoundManager
+  - MaxAmmo
+  - InstantKill
+  - RoundCounter
+  - RobotSpawner
+  - HealthText
+  - RobotShooter
   layers:
   - Default
   - TransparentFX
