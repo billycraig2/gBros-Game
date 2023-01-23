@@ -17,8 +17,11 @@ public class Grenade : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        GetComponent<Rigidbody2D>().velocity = Vector2.zero;
-        StartCoroutine(Explode());        
+        if(!other.CompareTag("Spawner"))
+        {
+            GetComponent<Rigidbody2D>().velocity = Vector2.zero;
+            StartCoroutine(Explode());
+        }                  
     }
 
     public IEnumerator Explode()

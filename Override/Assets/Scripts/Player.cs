@@ -6,8 +6,8 @@ using TMPro;
 public class Player : MonoBehaviour
 {
     [Header("Health")]
-    [SerializeField] float maxHealth = 60;
-    [SerializeField] float currentHealth;
+    public float maxHealth = 60;
+    public float currentHealth;
 
     [Header("Perks")]
     public bool hasJug;
@@ -84,6 +84,7 @@ public class Player : MonoBehaviour
     [SerializeField] AudioSource painTwoSound;
     [SerializeField] AudioSource painOneSound;
     [SerializeField] AudioSource reloadSound;
+    [SerializeField] AudioSource walkSound;
 
     [Header("Animations")]
     Animator playerAnim;
@@ -105,6 +106,7 @@ public class Player : MonoBehaviour
     [Header("Misc")]
     public bool controlsEnabled;
     bool hasDied = false;
+    bool walkSoundStarted;
 
     bool jugEffectApplied;
     bool staminaBoostApplied;
@@ -112,6 +114,7 @@ public class Player : MonoBehaviour
     bool manaBoostApplied;
     bool quickReviveApplied;
     bool extraLifeUsed;
+    public bool maxManaActive;
 
     void Start()
     {
@@ -142,8 +145,8 @@ public class Player : MonoBehaviour
     void Update()
     {
         GunMana();
-       
-        if(controlsEnabled)
+        playerRB.angularVelocity = 0f;
+        if (controlsEnabled)
         {
             Shooting();
             if (dashUnlocked)
@@ -292,10 +295,17 @@ public class Player : MonoBehaviour
     {
         if (playerRB.velocity != Vector2.zero)
         {
+            if(!walkSoundStarted)
+            {
+                walkSoundStarted = true;
+                walkSound.Play();
+            }         
             playerAnim.SetBool("isRunning", true);
         }
         else
         {
+            walkSoundStarted = false;
+            walkSound.Stop();
             playerAnim.SetBool("isRunning", false);
         }
     }
@@ -314,9 +324,14 @@ public class Player : MonoBehaviour
 
     void GunMana()
     {
-        if(currentGunMana < maxGunMana)
+        if(currentGunMana < maxGunMana && !maxManaActive)
         {
             currentGunMana += manaRegenSpeed * Time.deltaTime;
+        }
+
+        if(maxManaActive)
+        {
+            currentGunMana = maxGunMana;
         }
     }
 
@@ -366,6 +381,7 @@ public class Player : MonoBehaviour
         movementSpeed += dashSpeed;
         yield return new WaitForSeconds(dashLength);
         movementSpeed -= dashSpeed;
+        playerRB.angularVelocity = 0f;
     }
 
     void Shooting()
@@ -607,5 +623,17 @@ public class Player : MonoBehaviour
     public void MaxAmmo()
     {
         ammoStockpile += 50;
+    }
+
+    public void ActivateMaxMana()
+    {
+        StartCoroutine(MaxMana());
+    }
+
+    IEnumerator MaxMana()
+    {
+        maxManaActive = true;
+        yield return new WaitForSeconds(30f);
+        maxManaActive = false;
     }
 }

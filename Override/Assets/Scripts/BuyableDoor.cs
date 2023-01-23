@@ -22,7 +22,7 @@ public class BuyableDoor : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             isInCollider = true;
-            promptText.text = "Press E to buy door for " + doorCost + " points";
+            promptText.text = "Press F to buy door for " + doorCost + " points";
         }
     }
 
@@ -37,7 +37,7 @@ public class BuyableDoor : MonoBehaviour
 
     void Update()
     {
-        if(isInCollider && statTracker.playerPoints >= doorCost && Input.GetKeyDown(KeyCode.E))
+        if(isInCollider && statTracker.playerPoints >= doorCost && Input.GetKeyDown(KeyCode.F))
         {
             statTracker.playerPoints -= doorCost;
             Destroy(gameObject);

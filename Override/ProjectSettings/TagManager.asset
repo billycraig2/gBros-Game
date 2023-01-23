@@ -18,6 +18,10 @@ TagManager:
   - RobotShooter
   - Bullet
   - Grenade
+  - Spawner
+  - HealthDrop
+  - MaxManaDrop
+  - Drop
   layers:
   - Default
   - TransparentFX
@@ -30,7 +34,7 @@ TagManager:
   - Post Processing
   - 
   - 
-  - 
+  - Obstacle
   - 
   - 
   - 

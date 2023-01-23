@@ -9,6 +9,14 @@ public class PlayerBullet : MonoBehaviour
     public bool isPierceShot;
     public bool isPlayerBullet;
 
+    void Start()
+    {
+        if(isPierceShot)
+        {
+            StartCoroutine(PierceShot());
+        }
+    }
+
     void OnTriggerEnter2D(Collider2D other)
     {
         if(isPlayerBullet)
@@ -23,7 +31,7 @@ public class PlayerBullet : MonoBehaviour
                     Destroy(gameObject);
                 }
             }
-            else if (!other.CompareTag("Bullet"))
+            else if (!other.CompareTag("Bullet") && !other.CompareTag("Spawner") && !other.CompareTag("Drop") && !isPierceShot)
             {
                 Destroy(gameObject);
             }
@@ -38,7 +46,7 @@ public class PlayerBullet : MonoBehaviour
                     Destroy(gameObject);
                 }
             }
-            else if (!other.CompareTag("Bullet"))
+            else if (!other.CompareTag("Bullet") && !other.CompareTag("Spawner") && !other.CompareTag("Drop") && !isPierceShot)
             {
                 Destroy(gameObject);
             }
@@ -51,10 +59,16 @@ public class PlayerBullet : MonoBehaviour
                 player.GetComponent<Player>().TakeDamage(damage);
                 Destroy(gameObject);
             }
-            else if (!other.CompareTag("Bullet"))
+            else if (!other.CompareTag("Bullet") && !other.CompareTag("Spawner") && !other.CompareTag("Drop") && !isPierceShot)
             {
                 Destroy(gameObject);
             }
         }
+    }
+
+    IEnumerator PierceShot()
+    {
+        yield return new WaitForSeconds(10f);
+        Destroy(gameObject);
     }
 }

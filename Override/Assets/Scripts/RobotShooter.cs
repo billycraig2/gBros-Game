@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Pathfinding;
 
 public class RobotShooter : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class RobotShooter : MonoBehaviour
     public float currentHealth;
 
     [Header("Movement")]
-    [SerializeField] float movementSpeed = 2f;
+    [SerializeField] float movementSpeed = 3f;
     [SerializeField] float stoppingDistance = 5f;
 
     [Header("Damage")]
@@ -25,10 +26,10 @@ public class RobotShooter : MonoBehaviour
     [SerializeField] GameObject maxAmmo;
     [SerializeField] GameObject instantKill;
     [SerializeField] GameObject infiniteMana;
+    [SerializeField] GameObject healthDrop;
     [SerializeField] int dropSpawnChancePercentage = 20;
 
     [Header("References")]
-    Rigidbody2D robotRB;
     GameObject player;
     GameObject statTracker;
     RoundManager roundManager;
@@ -46,9 +47,7 @@ public class RobotShooter : MonoBehaviour
     void Awake()
     {
         player = GameObject.FindWithTag("Player");
-        robotRB = GetComponent<Rigidbody2D>();
         currentHealth = maxHealth;
-        robotRB = GetComponent<Rigidbody2D>();
         statTracker = GameObject.FindWithTag("StatTracker");
         roundManager = GameObject.FindWithTag("RoundManager").GetComponent<RoundManager>();
         robotAnim = GetComponent<Animator>();
@@ -56,16 +55,9 @@ public class RobotShooter : MonoBehaviour
 
     void Update()
     {
-        if(!isDead)
-        {
-            LookAtPlayer();
-        }
-        
-
         if(distanceToPlayer > stoppingDistance && !isDead)
         {
             isRunning = true;
-            ChasePlayer();
             robotAnim.SetBool("isRunning", true);
         }
         else
@@ -100,25 +92,20 @@ public class RobotShooter : MonoBehaviour
             Shoot();
             lastAttackTime = Time.time;
         }
-    }
 
-    void LookAtPlayer()
-    {
-        var offset = 90f;
-        Vector2 direction = player.transform.position - transform.position;
-        direction.Normalize();
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(Vector3.forward * (angle + offset));
-    }
-
-    void ChasePlayer()
-    {
-        transform.position = Vector2.MoveTowards(transform.position, player.transform.position, movementSpeed * Time.deltaTime);
+        if (distanceToPlayer <= stoppingDistance)
+        {
+            GetComponent<AIPath>().maxSpeed = 0.1f;
+        }
+        else if (!isDead)
+        {
+            GetComponent<AIPath>().maxSpeed = movementSpeed;
+        }
     }
 
     void Die()
     {
-        robotRB.simulated = false;
+        GetComponent<AIPath>().enabled = false;
         GetComponent<SpriteRenderer>().sortingOrder = 2;
         GetComponent<BoxCollider2D>().enabled = false;
         isDead = true;
@@ -130,8 +117,8 @@ public class RobotShooter : MonoBehaviour
             statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
             var randomNumber = Random.Range(1, 100);
             if (randomNumber < dropSpawnChancePercentage)
-            {               
-                var randomNumber2 = Random.Range(1, 3);
+            {
+                var randomNumber2 = Random.Range(1, 5);
                 if (randomNumber2 == 1)
                 {
                     Instantiate(maxAmmo, this.transform.position, Quaternion.identity);
@@ -139,6 +126,14 @@ public class RobotShooter : MonoBehaviour
                 else if (randomNumber2 == 2)
                 {
                     Instantiate(instantKill, this.transform.position, Quaternion.identity);
+                }
+                else if (randomNumber2 == 3)
+                {
+                    Instantiate(infiniteMana, this.transform.position, Quaternion.identity);
+                }
+                else if (randomNumber2 == 4)
+                {
+                    Instantiate(healthDrop, this.transform.position, Quaternion.identity);
                 }
             }
         }

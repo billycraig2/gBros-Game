@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 1389921635530255442}
   m_Layer: 0
   m_Name: MaxAmmo
-  m_TagString: MaxAmmo
+  m_TagString: Drop
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
