@@ -16,6 +16,8 @@ TagManager:
   - RobotSpawner
   - HealthText
   - RobotShooter
+  - Bullet
+  - Grenade
   layers:
   - Default
   - TransparentFX
@@ -25,7 +27,7 @@ TagManager:
   - UI
   - 
   - 
-  - 
+  - Post Processing
   - 
   - 
   - 

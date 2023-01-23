@@ -6,11 +6,19 @@ using TMPro;
 public class Player : MonoBehaviour
 {
     [Header("Health")]
-    [SerializeField] float maxHealth = 100;
+    [SerializeField] float maxHealth = 60;
     [SerializeField] float currentHealth;
+
+    [Header("Perks")]
+    public bool hasJug;
+    public bool hasStamina;
+    public bool hasSpeedCola;
+    public bool hasManaBoost;
+    public bool hasQuickRevive;
 
     [Header("Movement")]
     [SerializeField] float movementSpeed;
+    [SerializeField] float boostedSpeed = 9f;
 
     [Header("Dashing")]
     [SerializeField] bool dashUnlocked = false;
@@ -35,6 +43,7 @@ public class Player : MonoBehaviour
     [SerializeField] int ammoInMag;
     [SerializeField] int magSize = 12;
     [SerializeField] bool isFullAuto;
+    [SerializeField] float shotgunSpread = 10f;
     float nextFire;
 
     [Header("PierceShot")]
@@ -43,6 +52,15 @@ public class Player : MonoBehaviour
     public bool hasPierceShot;
     [SerializeField] float pierceFireRate = 4.0f;
     float pierceNextFire;
+
+    [Header("Grenade")]
+    [SerializeField] GameObject grenadePrefab;
+    [SerializeField] float throwForce = 20f;
+    [SerializeField] float grenadeCost = 50f;
+    [SerializeField] float grenadeWaitTime = 2.0f;
+    [SerializeField] bool grenadeUnlocked;
+    float grenadeNextFire;
+    float lastGrenadeTime;
 
     [Header("Gun Evolution")]
     [SerializeField] int gunLevel;
@@ -58,13 +76,14 @@ public class Player : MonoBehaviour
     public Transform firePoint;
     GameObject statTracker;
     TextMeshProUGUI ammoCounterText;
-    TextMeshProUGUI healthText;
+    [SerializeField] GameObject dashEffect;
 
     [Header("Audio")]
     [SerializeField] AudioSource singleFireSound;
     [SerializeField] AudioSource deathSound;
     [SerializeField] AudioSource painTwoSound;
     [SerializeField] AudioSource painOneSound;
+    [SerializeField] AudioSource reloadSound;
 
     [Header("Animations")]
     Animator playerAnim;
@@ -73,13 +92,30 @@ public class Player : MonoBehaviour
     public RuntimeAnimatorController markFourController;
     public RuntimeAnimatorController markFiveController;
 
+    [Header("UI")]
+    [SerializeField] GameObject heartOne;
+    [SerializeField] GameObject heartTwo;
+    [SerializeField] GameObject heartThree;
+    [SerializeField] GameObject heartFour;
+    [SerializeField] GameObject heartFive;
+    [SerializeField] GameObject emptyHeartOne;
+    [SerializeField] GameObject emptyHeartTwo;
+
+
     [Header("Misc")]
     public bool controlsEnabled;
     bool hasDied = false;
 
+    bool jugEffectApplied;
+    bool staminaBoostApplied;
+    bool speedColaBoostApplied;
+    bool manaBoostApplied;
+    bool quickReviveApplied;
+    bool extraLifeUsed;
+
     void Start()
     {
-        healthText = GameObject.FindWithTag("HealthText").GetComponent<TextMeshProUGUI>();
+        reloadTime = 1.2f;
         playerRB = GetComponent<Rigidbody2D>();
         currentHealth = maxHealth;
         currentGunMana = maxGunMana;
@@ -112,21 +148,124 @@ public class Player : MonoBehaviour
             Shooting();
             if (dashUnlocked)
             {
-                Dash();
-                Reloading();
+                Dash();              
             }
+            Reloading();
+            Grenade();
         }
-        
+
+        HealthUIUpdate();
         GetCurrentKills();
         GunLeveling();    
         AmmoCounter();
         CheckMovement();
-        HealthCounter();
+
+        if(!hasJug)
+        {
+            emptyHeartOne.SetActive(false);
+            emptyHeartTwo.SetActive(false);
+        }
+        
+        if(hasJug && !jugEffectApplied)
+        {
+            jugEffectApplied = true;
+            maxHealth = 100;
+            currentHealth = maxHealth;
+            emptyHeartOne.SetActive(true);
+            emptyHeartTwo.SetActive(true);
+        }
+
+        if(hasStamina && !staminaBoostApplied)
+        {
+            staminaBoostApplied = true;
+            movementSpeed = boostedSpeed;
+        }
+
+        if(hasSpeedCola && !speedColaBoostApplied)
+        {
+            speedColaBoostApplied = true;
+            reloadTime = 0.6f;
+            reloadSound.pitch = 2f;
+        }
+
+        if (hasManaBoost && !manaBoostApplied)
+        {
+            manaBoostApplied = true;
+            maxGunMana = 200f;
+            currentGunMana = maxGunMana;
+            manaRegenSpeed = 2f;
+        }
     }
 
-    void HealthCounter()
+    void HealthUIUpdate()
     {
-        healthText.text = "Health: " + currentHealth;
+        if (currentHealth <= 0)
+        {
+            heartOne.SetActive(false);
+            heartTwo.SetActive(false);
+            heartThree.SetActive(false);
+            heartFour.SetActive(false);
+            heartFive.SetActive(false);
+        }
+
+        if (currentHealth <= 20 && currentHealth > 0)
+        {
+            heartOne.SetActive(true);
+            heartTwo.SetActive(false);
+            heartThree.SetActive(false);
+            heartFour.SetActive(false);
+            heartFive.SetActive(false);
+        }
+
+        if(currentHealth <= 40 && currentHealth > 20)
+        {
+            heartOne.SetActive(true);
+            heartTwo.SetActive(true);
+            heartThree.SetActive(false);
+            heartFour.SetActive(false);
+            heartFive.SetActive(false);
+        }
+
+        if (currentHealth <= 60 && currentHealth > 40)
+        {
+            heartOne.SetActive(true);
+            heartTwo.SetActive(true);
+            heartThree.SetActive(true);
+            heartFour.SetActive(false);
+            heartFive.SetActive(false);
+        }
+
+        if (currentHealth <= 80 && currentHealth > 60)
+        {
+            heartOne.SetActive(true);
+            heartTwo.SetActive(true);
+            heartThree.SetActive(true);
+            heartFour.SetActive(true);
+            heartFive.SetActive(false);
+        }
+
+        if (currentHealth <= 100 && currentHealth > 80)
+        {
+            heartOne.SetActive(true);
+            heartTwo.SetActive(true);
+            heartThree.SetActive(true);
+            heartFour.SetActive(true);
+            heartFive.SetActive(true);
+        }
+    }
+
+    void Grenade()
+    {
+        if(Input.GetKeyDown(KeyCode.G) && grenadePossible && currentGunMana >= grenadeCost && grenadeUnlocked)
+        {
+            print("Throw grenade");
+            currentGunMana -= grenadeCost;
+            GameObject grenade = Instantiate(grenadePrefab, firePoint.position, firePoint.rotation);
+            Rigidbody2D rb = grenade.GetComponent<Rigidbody2D>();
+            rb.AddForce(firePoint.up * throwForce, ForceMode2D.Impulse);
+            lastGrenadeTime = Time.time;
+            StartCoroutine(grenade.GetComponent<Grenade>().Explode());
+        }
     }
 
     void ChangeMarkTwoAnims()
@@ -202,8 +341,21 @@ public class Player : MonoBehaviour
         }
     }
 
+    bool grenadePossible
+    {
+        get
+        {
+            return Time.time - lastGrenadeTime > grenadeWaitTime;
+        }
+    }
+
     void DoDash()
     {
+        Vector2 direction = playerRB.velocity.normalized;
+        GameObject dashObj = Instantiate(dashEffect, firePoint.position, Quaternion.identity);
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+        dashObj.transform.rotation = rotation;
         currentGunMana -= dashCost;
         lastDashTime = Time.time;
         StartCoroutine(DashRoutine());
@@ -244,14 +396,21 @@ public class Player : MonoBehaviour
 
     void Shoot()
     {
-        singleFireSound.Play();
-        ammoInMag -= 1;
-        GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-        newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
-        newBullet.GetComponent<PlayerBullet>().isPierceShot = false;
-        newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
-        Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
-        rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+        if(gunLevel == 3)
+        {
+            ShootShotgunShoot();
+        }
+        else
+        {
+            ammoInMag -= 1;
+            singleFireSound.Play();
+            GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+            newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
+            newBullet.GetComponent<PlayerBullet>().isPierceShot = false;
+            newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
+            Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+            rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+        }       
     }
 
     void ShootPierceShot()
@@ -265,6 +424,28 @@ public class Player : MonoBehaviour
         newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
         Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
         rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+    }
+
+    void ShootShotgunShoot()
+    {
+        if(ammoInMag < 3)
+        {
+            StartCoroutine(ReloadRoutine());
+        }
+        else
+        {
+            ammoInMag -= 3;
+            singleFireSound.Play();
+            for (int i = -1; i <= 1; i++)
+            {
+                GameObject newBullet = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+                newBullet.GetComponent<PlayerBullet>().damage = bulletDamage;
+                newBullet.GetComponent<PlayerBullet>().isPierceShot = false;
+                newBullet.GetComponent<PlayerBullet>().isPlayerBullet = true;
+                Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+                rb.velocity = Quaternion.Euler(0, 0, shotgunSpread * i) * firePoint.up * bulletSpeed;
+            }
+        }      
     }
 
     public void TakeDamage(float DamagePerHit)
@@ -292,20 +473,31 @@ public class Player : MonoBehaviour
 
     void Die()
     {
-        hasDied = true;
-        playerAnim.SetBool("isDead", true);
-        controlsEnabled = false;
-        playerRB.isKinematic = true;
-        playerRB.constraints = RigidbodyConstraints2D.FreezeRotation;
-        deathSound.Play();
+        if (hasQuickRevive && !extraLifeUsed)
+        {
+            extraLifeUsed = true;
+            currentHealth = maxHealth;
+            transform.position = new Vector3(0, 0, 0);
+        }
+        else
+        {
+            playerRB.simulated = false;
+            GetComponent<SpriteRenderer>().sortingOrder = 2;
+            hasDied = true;
+            playerAnim.SetBool("isDead", true);
+            controlsEnabled = false;
+            playerRB.isKinematic = true;
+            playerRB.constraints = RigidbodyConstraints2D.FreezeRotation;
+            deathSound.Play();
 
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Robot");
-        foreach (GameObject enemy in enemies)
-        GameObject.Destroy(enemy);
+            GameObject[] enemies = GameObject.FindGameObjectsWithTag("Robot");
+            foreach (GameObject enemy in enemies)
+            GameObject.Destroy(enemy);
 
-        GameObject[] spawners = GameObject.FindGameObjectsWithTag("RobotSpawner");
-        foreach (GameObject spawner in spawners)
-        GameObject.Destroy(spawner);
+            GameObject[] spawners = GameObject.FindGameObjectsWithTag("RobotSpawner");
+            foreach (GameObject spawner in spawners)
+            GameObject.Destroy(spawner);
+        }       
     }
 
     void GetCurrentKills()
@@ -341,8 +533,7 @@ public class Player : MonoBehaviour
                 hasPierceShot = false;
                 fireRate = 1f;
                 isFullAuto = false;
-                bulletDamage = 30f;
-                reloadTime = 2f;
+                bulletDamage = 60f;
                 break;
             case 2:
                 //Rifle
@@ -351,7 +542,6 @@ public class Player : MonoBehaviour
                 isFullAuto = false;
                 bulletDamage = 40f;
                 dashUnlocked = true;
-                reloadTime = 2f;
                 break;
             case 3:
                 //Shotgun
@@ -360,29 +550,28 @@ public class Player : MonoBehaviour
                 fireRate = 2f;
                 isFullAuto = false;
                 bulletDamage = 100f;
-                reloadTime = 2f;
                 break;
             case 4:
                 //Smg
                 ChangeMarkFourAnims();
                 fireRate = .2f;
                 isFullAuto = true;
-                bulletDamage = 10f;
-                reloadTime = 2f;
+                bulletDamage = 20f;
                 break;
             case 5:
                 //Assualt Rifle
+                ChangeMarkFiveAnims();
+                grenadeUnlocked = true;
                 fireRate = .4f;
                 isFullAuto = true;
-                bulletDamage = 20f;
-                reloadTime = 2f;
+                bulletDamage = 40f;
                 break;
         }
     }
 
     void Reloading()
     {
-        if((Input.GetKeyDown(KeyCode.R) || ammoInMag == 0) && !isReloading && ammoStockpile > 0)
+        if((Input.GetKeyDown(KeyCode.R) || ammoInMag == 0) && !isReloading && ammoStockpile > 0 && ammoInMag != magSize)
         {
             StartCoroutine(ReloadRoutine());
         }
@@ -390,6 +579,7 @@ public class Player : MonoBehaviour
 
     IEnumerator ReloadRoutine()
     {
+        reloadSound.Play();
         isReloading = true;
         yield return new WaitForSeconds(reloadTime);
         int ammoToTake;

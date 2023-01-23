@@ -23,7 +23,7 @@ public class PlayerBullet : MonoBehaviour
                     Destroy(gameObject);
                 }
             }
-            else
+            else if (!other.CompareTag("Bullet"))
             {
                 Destroy(gameObject);
             }
@@ -38,7 +38,7 @@ public class PlayerBullet : MonoBehaviour
                     Destroy(gameObject);
                 }
             }
-            else
+            else if (!other.CompareTag("Bullet"))
             {
                 Destroy(gameObject);
             }
@@ -51,7 +51,7 @@ public class PlayerBullet : MonoBehaviour
                 player.GetComponent<Player>().TakeDamage(damage);
                 Destroy(gameObject);
             }
-            else
+            else if (!other.CompareTag("Bullet"))
             {
                 Destroy(gameObject);
             }

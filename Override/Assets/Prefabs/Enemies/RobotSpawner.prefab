@@ -45,7 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4dd46443e79b019459bcb9ffc1d1d810, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robotPrefab: {fileID: 8081103558508000213, guid: ce91327e19b411341835f7d7c13c4dd7, type: 3}
+  robotPrefabOne: {fileID: 8081103558508000213, guid: e92f9d1eb5eb2074c9d65143f1e501bf, type: 3}
+  robotPrefabTwo: {fileID: 8081103558508000213, guid: ce91327e19b411341835f7d7c13c4dd7, type: 3}
   minSpawnDelay: 3
   maxSpawnDelay: 10
 --- !u!1 &7289292262633930864

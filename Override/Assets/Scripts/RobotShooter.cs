@@ -34,9 +34,13 @@ public class RobotShooter : MonoBehaviour
     RoundManager roundManager;
     [SerializeField] GameObject bulletPrefab;
     [SerializeField] Transform firePoint;
+    Animator robotAnim;
 
     bool healthLowered;
     bool healthBoosted;
+    bool isRunning;
+    bool isDead;
+    bool dropSpawned;
     [SerializeField] float distanceToPlayer;
 
     void Awake()
@@ -47,15 +51,27 @@ public class RobotShooter : MonoBehaviour
         robotRB = GetComponent<Rigidbody2D>();
         statTracker = GameObject.FindWithTag("StatTracker");
         roundManager = GameObject.FindWithTag("RoundManager").GetComponent<RoundManager>();
+        robotAnim = GetComponent<Animator>();
     }
 
     void Update()
     {
-        LookAtPlayer();
-
-        if(distanceToPlayer > stoppingDistance)
+        if(!isDead)
         {
+            LookAtPlayer();
+        }
+        
+
+        if(distanceToPlayer > stoppingDistance && !isDead)
+        {
+            isRunning = true;
             ChasePlayer();
+            robotAnim.SetBool("isRunning", true);
+        }
+        else
+        {
+            isRunning = false;
+            robotAnim.SetBool("isRunning", false);
         }
 
         if (currentHealth <= 0)
@@ -79,7 +95,7 @@ public class RobotShooter : MonoBehaviour
 
         distanceToPlayer = Vector2.Distance(transform.position, player.transform.position);
 
-        if (Time.time >= lastAttackTime + attackCooldown)
+        if (Time.time >= lastAttackTime + attackCooldown && !isDead)
         {
             Shoot();
             lastAttackTime = Time.time;
@@ -102,23 +118,31 @@ public class RobotShooter : MonoBehaviour
 
     void Die()
     {
-        statTracker.GetComponent<StatTracker>().playerKills += 1;
-        statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
-
-        var randomNumber = Random.Range(1, 100);
-        if (randomNumber < dropSpawnChancePercentage)
+        robotRB.simulated = false;
+        GetComponent<SpriteRenderer>().sortingOrder = 2;
+        GetComponent<BoxCollider2D>().enabled = false;
+        isDead = true;
+        robotAnim.SetBool("isDead", true);
+        if (!dropSpawned)
         {
-            var randomNumber2 = Random.Range(1, 3);
-            if (randomNumber2 == 1)
-            {
-                Instantiate(maxAmmo, this.transform.position, Quaternion.identity);
-            }
-            else if (randomNumber2 == 2)
-            {
-                Instantiate(instantKill, this.transform.position, Quaternion.identity);
+            dropSpawned = true;
+            statTracker.GetComponent<StatTracker>().playerKills += 1;
+            statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
+            var randomNumber = Random.Range(1, 100);
+            if (randomNumber < dropSpawnChancePercentage)
+            {               
+                var randomNumber2 = Random.Range(1, 3);
+                if (randomNumber2 == 1)
+                {
+                    Instantiate(maxAmmo, this.transform.position, Quaternion.identity);
+                }
+                else if (randomNumber2 == 2)
+                {
+                    Instantiate(instantKill, this.transform.position, Quaternion.identity);
+                }
             }
         }
-        Destroy(gameObject);
+        StartCoroutine(DieRoutine());
     }
 
     void Shoot()
@@ -129,5 +153,11 @@ public class RobotShooter : MonoBehaviour
         Vector2 direction = (player.transform.position - firePoint.position).normalized;
         Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
         rb.AddForce(firePoint.up * bulletSpeed, ForceMode2D.Impulse);
+    }
+
+    IEnumerator DieRoutine()
+    {
+        yield return new WaitForSeconds(5f);
+        Destroy(gameObject);
     }
 }

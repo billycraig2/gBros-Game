@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class RobotSpawner : MonoBehaviour
 {
-    [SerializeField] GameObject robotPrefab;
+    [SerializeField] GameObject robotPrefabOne;
+    [SerializeField] GameObject robotPrefabTwo;
     RoundManager roundManager;
     [SerializeField] int minSpawnDelay = 3;
     [SerializeField] int maxSpawnDelay = 10;
@@ -22,7 +23,15 @@ public class RobotSpawner : MonoBehaviour
         if(roundManager.robotsLeft > 0)
         {
             roundManager.robotsLeft -= 1;
-            Instantiate(robotPrefab, this.transform.position, Quaternion.identity);
+            var RandomNo = Random.Range(1, 3);
+            if(RandomNo == 1)
+            {
+                Instantiate(robotPrefabOne, this.transform.position, Quaternion.identity);
+            }
+            else
+            {
+                Instantiate(robotPrefabTwo, this.transform.position, Quaternion.identity);
+            }
         }   
         StartCoroutine(RobotSpawnRoutine());
     }
