@@ -9,9 +9,6 @@ public class Robot : MonoBehaviour
     [SerializeField] float maxHealth = 100;
     public float currentHealth;
 
-    [Header("Movement")]
-    [SerializeField] float movementSpeed = 2f;
-
     [Header("Damage")]
     [SerializeField] float damagePerHit = 20f;
     [SerializeField] float attackRange = 1f;
@@ -140,14 +137,15 @@ public class Robot : MonoBehaviour
     }
 
     void Die()
-    {
+    {      
         GetComponent<AIPath>().enabled = false;
         GetComponent<SpriteRenderer>().sortingOrder = 2;
         GetComponent<BoxCollider2D>().enabled = false;
         isDead = true;
         if(!dropSpawned)
-        {
+        {          
             dropSpawned = true;
+            player.GetComponent<Player>().killsToNextUpgrade -= 1;
             statTracker.GetComponent<StatTracker>().playerKills += 1;
             statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
             var randomNumber = Random.Range(1, 100);

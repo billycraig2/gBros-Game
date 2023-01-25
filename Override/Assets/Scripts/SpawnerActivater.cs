@@ -9,14 +9,13 @@ public class SpawnerActivater : MonoBehaviour
     void Start()
     {
         childSpawner = this.gameObject.transform.GetChild(0).gameObject;
-        childSpawner.SetActive(false);
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
         if(other.CompareTag("Player"))
         {
-            childSpawner.SetActive(true);
+            StartCoroutine(childSpawner.GetComponent<RobotSpawner>().RobotSpawnRoutine());
         }
     }
 

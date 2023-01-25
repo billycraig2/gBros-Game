@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
@@ -31,15 +32,16 @@ public class Player : MonoBehaviour
     float lastDashTime;
 
     [Header("Gun Mana")]
-    [SerializeField] float currentGunMana = 100;
-    [SerializeField] float maxGunMana = 100;
+    [SerializeField] float currentGunMana = 50;
+    [SerializeField] float maxGunMana = 50;
     [SerializeField] float manaRegenSpeed = 1;
+    [SerializeField] float manaPercentage = 1;
 
     [Header("Bullet")]
     [SerializeField] float bulletDamage = 20f;
     [SerializeField] float bulletSpeed = 1f;
     [SerializeField] float fireRate = 1f;
-    [SerializeField] int ammoStockpile = 24;
+    public int ammoStockpile = 24;
     [SerializeField] int ammoInMag;
     [SerializeField] int magSize = 12;
     [SerializeField] bool isFullAuto;
@@ -62,9 +64,20 @@ public class Player : MonoBehaviour
     float grenadeNextFire;
     float lastGrenadeTime;
 
+    [Header("RapidFire")]
+    [SerializeField] bool rapidFireActive;
+    [SerializeField] bool rapidFireUnlocked;
+    [SerializeField] bool rapidFireCooledDown;
+    [SerializeField] float rapidFireCost;
+
     [Header("Gun Evolution")]
     [SerializeField] int gunLevel;
     [SerializeField] int playerKills;
+    [SerializeField] float upgradeHoldTime = 3f;
+    [SerializeField] GameObject upgradeExplosion;
+    public int killsToNextUpgrade;
+    float holdTime = 0f;
+    bool keyIsHeld;
 
     [Header("Reloading")]
     bool isReloading;
@@ -77,6 +90,7 @@ public class Player : MonoBehaviour
     GameObject statTracker;
     TextMeshProUGUI ammoCounterText;
     [SerializeField] GameObject dashEffect;
+    [SerializeField] TextMeshProUGUI promptText;
 
     [Header("Audio")]
     [SerializeField] AudioSource singleFireSound;
@@ -85,13 +99,15 @@ public class Player : MonoBehaviour
     [SerializeField] AudioSource painOneSound;
     [SerializeField] AudioSource reloadSound;
     [SerializeField] AudioSource walkSound;
+    [SerializeField] AudioSource upgradeSound;
+    [SerializeField] AudioSource explosionSound;
 
     [Header("Animations")]
-    Animator playerAnim;
     public RuntimeAnimatorController markTwoController;
     public RuntimeAnimatorController markThreeController;
     public RuntimeAnimatorController markFourController;
     public RuntimeAnimatorController markFiveController;
+    Animator playerAnim;
 
     [Header("UI")]
     [SerializeField] GameObject heartOne;
@@ -101,7 +117,25 @@ public class Player : MonoBehaviour
     [SerializeField] GameObject heartFive;
     [SerializeField] GameObject emptyHeartOne;
     [SerializeField] GameObject emptyHeartTwo;
-
+    [SerializeField] GameObject pistolIcon;
+    [SerializeField] GameObject rifleIcon;
+    [SerializeField] GameObject shotgunIcon;
+    [SerializeField] GameObject smgIcon;
+    [SerializeField] GameObject arIcon;
+    [SerializeField] GameObject emptyLevelBar;
+    [SerializeField] GameObject firstLevelBar;
+    [SerializeField] GameObject secondLevelBar;
+    [SerializeField] GameObject thirdLevelBar;
+    [SerializeField] GameObject fourthLevelBar;
+    [SerializeField] GameObject readyToUpgradeText;
+    [SerializeField] Texture2D cursorTexture;
+    public CursorMode cursorMode = CursorMode.Auto;
+    public Vector2 hotSpot = Vector2.zero;
+    [SerializeField] GameObject emptyManaBar;
+    [SerializeField] GameObject firstManaBar;
+    [SerializeField] GameObject secondManaBar;
+    [SerializeField] GameObject thirdManaBar;
+    [SerializeField] GameObject fourthManaBar;
 
     [Header("Misc")]
     public bool controlsEnabled;
@@ -114,10 +148,35 @@ public class Player : MonoBehaviour
     bool manaBoostApplied;
     bool quickReviveApplied;
     bool extraLifeUsed;
+    bool upgradeSoundStarted;
+    bool readyToUpgrade;
     public bool maxManaActive;
+
+    public float levelPercentage;
+    float level2killsneeded = 10;
+    float level3killsneeded = 20;
+    float level4killsneeded = 30;
+    float level5killsneeded = 40;
+
+    [SerializeField] GameObject mainCanvas;
+    [SerializeField] GameObject gameOverCanvas;
+    [SerializeField] TextMeshProUGUI roundTextEnd;
+
+    bool isGameOver;
+    bool gunLevelPromptDone;
+    bool dashPromptDone;
+    bool rapidFirePromptDone;
+    bool piercePromptDone;
+    bool grenadePromptDone;
+
 
     void Start()
     {
+        mainCanvas.SetActive(true);
+        gameOverCanvas.SetActive(false);
+        rapidFireCooledDown = true;
+        killsToNextUpgrade = 10;
+        readyToUpgrade = false;
         reloadTime = 1.2f;
         playerRB = GetComponent<Rigidbody2D>();
         currentHealth = maxHealth;
@@ -131,6 +190,7 @@ public class Player : MonoBehaviour
 
         ammoCounterText = GameObject.FindWithTag("AmmoText").GetComponent<TextMeshProUGUI>();
         controlsEnabled = true;
+        Cursor.SetCursor(cursorTexture, hotSpot, cursorMode);
     }
 
     void FixedUpdate()
@@ -162,6 +222,10 @@ public class Player : MonoBehaviour
         GunLeveling();    
         AmmoCounter();
         CheckMovement();
+        GunUIUpdate();
+        LevelPercentageCalculation();
+        RapidFire();
+        ManaBar();
 
         if(!hasJug)
         {
@@ -197,6 +261,236 @@ public class Player : MonoBehaviour
             maxGunMana = 200f;
             currentGunMana = maxGunMana;
             manaRegenSpeed = 2f;
+        }
+
+        if(isGameOver && Input.GetKeyDown(KeyCode.R))
+        {
+            SceneManager.LoadScene("Final Scene", LoadSceneMode.Single);
+        }
+
+        if (isGameOver && Input.GetKeyDown(KeyCode.Return))
+        {
+            SceneManager.LoadScene("MainMenu", LoadSceneMode.Single);
+        }
+
+        if(gunLevel == 1 && readyToUpgrade && !gunLevelPromptDone)
+        {
+            StartCoroutine(LevelGun());
+        }
+
+        if(gunLevel == 2 && !dashPromptDone)
+        {
+            StartCoroutine(DashPromptRoutine());
+        }
+
+        if (gunLevel == 3 && !piercePromptDone)
+        {
+            StartCoroutine(PiercePromptRoutine());
+        }
+
+        if (gunLevel == 4 && !rapidFirePromptDone)
+        {
+            StartCoroutine(RapidFirePromptRoutine());
+        }
+
+        if (gunLevel == 5 && !grenadePromptDone)
+        {
+            StartCoroutine(GrenadePromptRoutine());
+        }
+    }
+
+    void ManaBar()
+    {
+        manaPercentage = currentGunMana / maxGunMana;
+
+        if (manaPercentage > .80f && manaPercentage <= 1f)
+        {
+            emptyManaBar.SetActive(false);
+            firstManaBar.SetActive(false);
+            secondManaBar.SetActive(false);
+            thirdManaBar.SetActive(false);
+            fourthManaBar.SetActive(true);
+        }
+
+        if (manaPercentage > .60f && manaPercentage <= .80f)
+        {
+            emptyManaBar.SetActive(false);
+            firstManaBar.SetActive(false);
+            secondManaBar.SetActive(false);
+            thirdManaBar.SetActive(true);
+            fourthManaBar.SetActive(false);
+        }
+
+        if (manaPercentage > .40f && manaPercentage <= .60f)
+        {
+            emptyManaBar.SetActive(false);
+            firstManaBar.SetActive(false);
+            secondManaBar.SetActive(true);
+            thirdManaBar.SetActive(false);
+            fourthManaBar.SetActive(false);
+        }
+
+        if (manaPercentage > .20f && manaPercentage <= .40f)
+        {
+            emptyManaBar.SetActive(false);
+            firstManaBar.SetActive(true);
+            secondManaBar.SetActive(false);
+            thirdManaBar.SetActive(false);
+            fourthManaBar.SetActive(false);
+        }
+
+        if (manaPercentage <= .2f)
+        {
+            emptyManaBar.SetActive(true);
+            firstManaBar.SetActive(false);
+            secondManaBar.SetActive(false);
+            thirdManaBar.SetActive(false);
+            fourthManaBar.SetActive(false);
+        }
+    }
+
+    void RapidFire()
+    {
+        if(Input.GetKeyDown(KeyCode.E) && rapidFireUnlocked && currentGunMana >= rapidFireCost && rapidFireCooledDown)
+        {
+            StartCoroutine(RapidFireRoutine());
+        }
+    }
+
+    IEnumerator RapidFireRoutine()
+    {
+        rapidFireCooledDown = false;
+        currentGunMana -= rapidFireCost;
+        rapidFireActive = true;
+        yield return new WaitForSeconds(10f);
+        rapidFireActive = false;
+        yield return new WaitForSeconds(20f);
+        rapidFireCooledDown = true;
+    }
+
+    void LevelPercentageCalculation()
+    {
+        if (gunLevel == 1)
+        {
+            levelPercentage = killsToNextUpgrade / level2killsneeded;
+        }
+
+        if (gunLevel == 2)
+        {
+            levelPercentage = killsToNextUpgrade / level3killsneeded;
+        }
+
+        if (gunLevel == 3)
+        {
+            levelPercentage = killsToNextUpgrade / level4killsneeded;
+        }
+
+        if (gunLevel == 4)
+        {
+            levelPercentage = killsToNextUpgrade / level5killsneeded;
+        }
+
+        if (gunLevel == 5)
+        {
+            levelPercentage = 0f;
+        }
+
+        if (levelPercentage > .75f && levelPercentage <= 1f)
+        {
+            emptyLevelBar.SetActive(true);
+            firstLevelBar.SetActive(false);
+            secondLevelBar.SetActive(false);
+            thirdLevelBar.SetActive(false);
+            fourthLevelBar.SetActive(false);
+            readyToUpgradeText.SetActive(false);
+        }
+
+        if (levelPercentage > .50f && levelPercentage <= .75f)
+        {
+            emptyLevelBar.SetActive(false);
+            firstLevelBar.SetActive(true);
+            secondLevelBar.SetActive(false);
+            thirdLevelBar.SetActive(false);
+            fourthLevelBar.SetActive(false);
+            readyToUpgradeText.SetActive(false);
+        }
+
+        if (levelPercentage > .25f && levelPercentage <= .50f)
+        {
+            emptyLevelBar.SetActive(false);
+            firstLevelBar.SetActive(false);
+            secondLevelBar.SetActive(true);
+            thirdLevelBar.SetActive(false);
+            fourthLevelBar.SetActive(false);
+            readyToUpgradeText.SetActive(false);
+        }
+
+        if (levelPercentage > .0f && levelPercentage <= .25f)
+        {
+            emptyLevelBar.SetActive(false);
+            firstLevelBar.SetActive(false);
+            secondLevelBar.SetActive(false);
+            thirdLevelBar.SetActive(true);
+            fourthLevelBar.SetActive(false);
+            readyToUpgradeText.SetActive(false);
+        }
+
+        if (levelPercentage <= 0f)
+        {
+            emptyLevelBar.SetActive(false);
+            firstLevelBar.SetActive(false);
+            secondLevelBar.SetActive(false);
+            thirdLevelBar.SetActive(false);
+            fourthLevelBar.SetActive(true);
+            readyToUpgradeText.SetActive(true);
+        }
+    }
+
+    void GunUIUpdate()
+    {
+        if(gunLevel == 1)
+        {
+            pistolIcon.SetActive(true);
+            rifleIcon.SetActive(false);
+            shotgunIcon.SetActive(false);
+            smgIcon.SetActive(false);
+            arIcon.SetActive(false);
+        }
+
+        if (gunLevel == 2)
+        {
+            pistolIcon.SetActive(false);
+            rifleIcon.SetActive(true);
+            shotgunIcon.SetActive(false);
+            smgIcon.SetActive(false);
+            arIcon.SetActive(false);
+        }
+
+        if (gunLevel == 3)
+        {
+            pistolIcon.SetActive(false);
+            rifleIcon.SetActive(false);
+            shotgunIcon.SetActive(true);
+            smgIcon.SetActive(false);
+            arIcon.SetActive(false);
+        }
+
+        if (gunLevel == 4)
+        {
+            pistolIcon.SetActive(false);
+            rifleIcon.SetActive(false);
+            shotgunIcon.SetActive(false);
+            smgIcon.SetActive(true);
+            arIcon.SetActive(false);
+        }
+
+        if (gunLevel == 5)
+        {
+            pistolIcon.SetActive(false);
+            rifleIcon.SetActive(false);
+            shotgunIcon.SetActive(false);
+            smgIcon.SetActive(false);
+            arIcon.SetActive(true);
         }
     }
 
@@ -513,6 +807,11 @@ public class Player : MonoBehaviour
             GameObject[] spawners = GameObject.FindGameObjectsWithTag("RobotSpawner");
             foreach (GameObject spawner in spawners)
             GameObject.Destroy(spawner);
+            GameObject.FindWithTag("RoundManager").GetComponent<RoundManager>().RecordRound();
+            mainCanvas.SetActive(false);
+            gameOverCanvas.SetActive(true);
+            roundTextEnd.text = "You survived " + GameObject.FindWithTag("RoundManager").GetComponent<RoundManager>().currentRound.ToString() + " rounds!";
+            isGameOver = true;
         }       
     }
 
@@ -523,23 +822,27 @@ public class Player : MonoBehaviour
 
     void GunLeveling()
     {
-        switch (playerKills)
+        if(killsToNextUpgrade <= 0)
         {
-            case 0:
-                gunLevel = 1;
-                break;
-            case 1:
-                gunLevel = 2;
-                break;
-            case 2:
-                gunLevel = 3;
-                break;
-            case 3:
-                gunLevel = 4;
-                break;
-            case 4:
-                gunLevel = 5;
-                break;
+            if(gunLevel != 2)
+            {
+                readyToUpgrade = true;
+            }
+
+            if (gunLevel != 3)
+            {
+                readyToUpgrade = true;
+            }
+
+            if (gunLevel != 4)
+            {
+                readyToUpgrade = true;
+            }
+
+            if (gunLevel != 6)
+            {
+                readyToUpgrade = true;
+            }
         }
 
         switch (gunLevel)
@@ -547,41 +850,110 @@ public class Player : MonoBehaviour
             case 1:
                 //Pistol
                 hasPierceShot = false;
-                fireRate = 1f;
+                if(rapidFireActive)
+                {
+                    fireRate = .1f;
+                }
+                else
+                {
+                    fireRate = 1f;
+                }            
                 isFullAuto = false;
-                bulletDamage = 60f;
+                bulletDamage = 50f;
                 break;
             case 2:
                 //Rifle
                 ChangeMarkTwoAnims();
-                fireRate = .7f;
+                if (rapidFireActive)
+                {
+                    fireRate = .1f;
+                }
+                else
+                {
+                    fireRate = .7f;
+                }              
                 isFullAuto = false;
-                bulletDamage = 40f;
+                bulletDamage = 100f;
                 dashUnlocked = true;
                 break;
             case 3:
                 //Shotgun
                 ChangeMarkThreeAnims();
                 hasPierceShot = true;
-                fireRate = 2f;
+                if (rapidFireActive)
+                {
+                    fireRate = .1f;
+                }
+                else
+                {
+                    fireRate = 2f;
+                }        
                 isFullAuto = false;
                 bulletDamage = 100f;
                 break;
             case 4:
                 //Smg
+                rapidFireUnlocked = true;
                 ChangeMarkFourAnims();
-                fireRate = .2f;
+                if (rapidFireActive)
+                {
+                    fireRate = .1f;
+                }
+                else
+                {
+                    fireRate = .2f;
+                }             
                 isFullAuto = true;
-                bulletDamage = 20f;
+                bulletDamage = 40f;
                 break;
             case 5:
                 //Assualt Rifle
                 ChangeMarkFiveAnims();
                 grenadeUnlocked = true;
-                fireRate = .4f;
+                if (rapidFireActive)
+                {
+                    fireRate = .1f;
+                }
+                else
+                {
+                    fireRate = .4f;
+                }
                 isFullAuto = true;
-                bulletDamage = 40f;
+                bulletDamage = 60f;
                 break;
+        }
+
+        if(readyToUpgrade && Input.GetKey(KeyCode.LeftShift))
+        {
+            if(!upgradeSoundStarted)
+            {
+                upgradeSoundStarted = true;
+                upgradeSound.Play();
+            }
+            
+            if(!keyIsHeld)
+            {
+                keyIsHeld = true;
+                holdTime = Time.time;
+            }
+            else
+            {
+                if (Time.time - holdTime >= upgradeHoldTime && readyToUpgrade)
+                {
+                    readyToUpgrade = false;
+                    killsToNextUpgrade = ((gunLevel * 10) + 10);
+
+                    Instantiate(upgradeExplosion, transform.position, Quaternion.identity);
+                    explosionSound.Play();                    
+                    gunLevel += 1;
+                }
+            }
+        }
+        else
+        {
+            upgradeSoundStarted = false;
+            upgradeSound.Stop();
+            keyIsHeld = false;
         }
     }
 
@@ -635,5 +1007,45 @@ public class Player : MonoBehaviour
         maxManaActive = true;
         yield return new WaitForSeconds(30f);
         maxManaActive = false;
+    }
+
+    IEnumerator LevelGun()
+    {
+        gunLevelPromptDone = true;
+        promptText.text = "Hold shift to evolve!";
+        yield return new WaitForSeconds(4f);
+        promptText.text = "";
+    }
+
+    IEnumerator DashPromptRoutine()
+    {
+        dashPromptDone = true;
+        promptText.text = "Dash Unlocked!";
+        yield return new WaitForSeconds(4f);
+        promptText.text = "";
+    }
+
+    IEnumerator PiercePromptRoutine()
+    {
+        piercePromptDone = true;
+        promptText.text = "Pierce Shot Unlocked!";
+        yield return new WaitForSeconds(4f);
+        promptText.text = "";
+    }
+
+    IEnumerator RapidFirePromptRoutine()
+    {
+        rapidFirePromptDone = true;
+        promptText.text = "Rapid Fire Unlocked!";
+        yield return new WaitForSeconds(4f);
+        promptText.text = "";
+    }
+
+    IEnumerator GrenadePromptRoutine()
+    {
+        grenadePromptDone = true;
+        promptText.text = "Grenades Unlocked!";
+        yield return new WaitForSeconds(4f);
+        promptText.text = "";
     }
 }

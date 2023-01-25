@@ -16,7 +16,7 @@ public class RobotShooter : MonoBehaviour
     [Header("Damage")]
     [SerializeField] float damagePerHit = 20f;
     [SerializeField] float bulletSpeed = 10f;
-    [SerializeField] float attackCooldown = 1f;
+    [SerializeField] float attackCooldown = 2f;
     float lastAttackTime;
 
     [Header("Points")]
@@ -113,6 +113,7 @@ public class RobotShooter : MonoBehaviour
         if (!dropSpawned)
         {
             dropSpawned = true;
+            player.GetComponent<Player>().killsToNextUpgrade -= 1;
             statTracker.GetComponent<StatTracker>().playerKills += 1;
             statTracker.GetComponent<StatTracker>().playerPoints += pointsPerDeath;
             var randomNumber = Random.Range(1, 100);
